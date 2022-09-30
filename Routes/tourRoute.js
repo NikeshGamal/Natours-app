@@ -5,6 +5,8 @@ const tourController = require('../Controllers/tourControllers');
 //Analogy can be : think as chaining method
 const router = express.Router();
 
+router.route('/tour-stats').get(tourController.getTourStats);
+
 router
   .route('/')
   .get(tourController.getALlTours)

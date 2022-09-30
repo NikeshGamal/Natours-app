@@ -1,9 +1,11 @@
-const fs = require('fs');
 const express = require('express');
+
 const app = express();
 const morgan = require('morgan');
-const tourRoute = require('./Routes/tourRoute.js');
-const userRoute = require('./Routes/userRoute.js');
+const tourRoute = require('./Routes/tourRoute');
+const userRoute = require('./Routes/userRoute');
+const AppError = require('./utils/appError');
+const globalErrorHandler = require('./Controllers/errorController');
 
 //middleware
 app.use(morgan('dev'));
@@ -60,5 +62,27 @@ app.delete('/api/v1/tours/:id', deleteTour);
 app.use('/api/v1/users', userRoute);
 app.use('/api/v1/tours', tourRoute);
 
+//--------Handler for routes thare are not handled
+app.all('*', (req, res, next) => {
+  // res.status(404).json({
+  //   status: 'fail',
+  //   message: `Can't find ${req.originalUrl} on this server`,
+  // });
+
+  // const err = new Error(`Can't find ${req.originalUrl} on this server`);
+  // err.status = 'fail';
+  // err.statusCode = 404;
+  // console.log(err.status, err.statusCode);
+  // next(err);
+  //----------need to call AppError's method here
+  next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));
+});
+
+//------------Global Error handling Middleware------------
+//we are going to address the error fro a central location for that we need a global error handling mechanism (---middleware---)
+
+//For error handling middleware there are 4 parametes and the middleware looks like
+
+app.use(globalErrorHandler);
 //***************************************
 module.exports = app;

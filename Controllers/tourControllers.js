@@ -1,27 +1,64 @@
 const Tour = require('../Models/tourModel');
 
+const catchAsync = require('../utils/catchAsync');
 //1.For Tours
 
 //************Get all tours*************
 
-exports.getALlTours = async (req, res) => {
+exports.getALlTours = async (req, res, next) => {
   try {
     //BUILD QUERY
     //basic query
     // eslint-disable-next-line node/no-unsupported-features/es-syntax
     const queryObj = { ...req.query };
-    // console.log(req.query);
+
     const excludedFields = ['page', 'sort', 'limit', 'fields'];
     excludedFields.forEach((el) => delete queryObj[el]);
-    let query = Tour.find(queryObj);
 
     //2..Advance filerting
-    //we have an object queryObj so we need to check for the string so need to change the object to the string 
-    let queryStr = JSON.stringify(queryObj); 
-    
+    //we have an object queryObj so we need to check for the string so need to change the object to the string
+    let queryStr = JSON.stringify(queryObj);
+    queryStr = queryStr.replace(/\b(gte|lte|gt|lt)\b/g, (match) => `$${match}`);
+
+    let query = Tour.find(JSON.parse(queryStr));
+
+    //3.Sorting query
+    if (req.query.sort) {
+      //For single criteria we perform following query
+      // query.sort(req.query.sort);
+
+      //For multiple criteria we perform following query
+      const sortBy = req.query.sort.split(',').join(' ');
+      query.sort(sortBy);
+    } else {
+      query.sort('createdAt');
+    }
+
+    //4.field limit query
+    if (req.query.fields) {
+      const fields = req.query.fields.split(',').join(' ');
+
+      query = query.select(fields);
+    } else {
+      query = query.select('-__v');
+    }
+
+    //5.pagination query
+    const page = req.query.page * 1 || 1;
+    const limit = req.query.limit * 1 || 100;
+    const skip = (page - 1) * limit;
+
+    query = query.skip(skip).limit(limit);
+
+    //page with no documents
+    if (req.query.page) {
+      const numTours = await Tour.countDocuments();
+      if (skip >= numTours) throw new Error('This page does not contain');
+    }
 
     //EXECUTE QUERY
     const tours = await query;
+
     //SEND RESPONSE
     res.status(200).json({
       status: 'success',
@@ -108,27 +145,20 @@ exports.getTour = async (req, res) => {
 
 //Alternate method
 //create method returns promise so instead of .then()----- we use aync await fuction
-exports.createTour = async (req, res) => {
-  try {
-    //take the request and save to the database
-    const newTour = await Tour.create(req.body);
+exports.createTour = catchAsync(async (req, res, next) => {
+  //take the request and save to the database
+  const newTour = await Tour.create(req.body);
 
-    res.status(201).json({
-      status: 'success',
-      data: {
-        tour: newTour,
-      },
-    });
-  } catch (err) {
-    res.status(400).json({
-      status: 'fail',
-      message: err,
-    });
-  }
-};
+  res.status(201).json({
+    status: 'success',
+    data: {
+      tour: newTour,
+    },
+  });
+});
 
 //********Update tour************
-exports.updateTour = async (req, res) => {
+exports.updateTour = async (req, res, next) => {
   try {
     const tour = await Tour.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -154,13 +184,51 @@ exports.updateTour = async (req, res) => {
 
 //*********Delete tour***********
 
-exports.deleteTour = async (req, res) => {
+exports.deleteTour = async (req, res, next) => {
   try {
     await Tour.findByIdAndDelete(req.params.id);
     // console.log(tour);
     res.status(204).json({
       status: 'success',
       data: null,
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: 'fail',
+      message: err,
+    });
+  }
+};
+
+exports.getTourStats = async (req, res, next) => {
+  try {
+    //aggregate method accepts the array
+    const stats = await Tour.aggregate([
+      {
+        $match: {
+          ratingsAverage: { $gte: 4 },
+        },
+      },
+      {
+        $group: {
+          _id: '$ratingsAverage',
+          numTours: { $sum: 1 },
+          numRatings: { $sum: '$ratingsAverage' },
+          avgRating: { $avg: '$ratingsAverage' },
+          avgPrice: { $avg: '$price' },
+          minPrice: { $min: '$price' },
+          maxPrice: { $max: '$price' },
+        },
+      },
+      {
+        $sort: { avgPrice: 1 },
+      },
+    ]);
+    res.status(200).json({
+      status: 'success',
+      data: {
+        stats,
+      },
     });
   } catch (err) {
     res.status(400).json({
