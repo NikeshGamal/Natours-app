@@ -1,12 +1,20 @@
+const User = require('../Models/userModel');
+const catchAsync = require('../utils/catchAsync');
+
 //******For Users*****
-exports.getAllUsers = (req, res) => {
+exports.getAllUsers = catchAsync(async (req, res) => {
+  const users = await User.find();
+
+  //SEND RESPONSE
   res.status(200).json({
     status: 'success',
+    requestedAt: req.requestTime,
+    results: users.length,
     data: {
-      message: 'This route is not in used',
+      users,
     },
   });
-};
+});
 
 exports.getUser = (req, res) => {
   res.status(200).json({
