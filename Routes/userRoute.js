@@ -1,8 +1,11 @@
 const express = require('express');
 const userController = require('./../Controllers/userControllers');
+const authController = require('./../Controllers/authController');
 
 //Analogy can be : think as chaining method
 const router = express.Router();
+
+router.post('/signup',authController.signup);
 
 router
   .route('/')

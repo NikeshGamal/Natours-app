@@ -58,8 +58,8 @@ app.delete('/api/v1/tours/:id', deleteTour);
 */
 
 //***************************************
-//---------------ROUTES----------------
 app.use('/api/v1/users', userRoute);
+//---------------ROUTES----------------
 app.use('/api/v1/tours', tourRoute);
 
 //--------Handler for routes thare are not handled
