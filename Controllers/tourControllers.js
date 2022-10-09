@@ -6,7 +6,7 @@ const APIFeatures = require('../utils/apiFeatures');
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------
 //************Get all tours*************
-exports.getALlTours = async (req, res, next) => {
+exports.getAllTours = async (req, res, next) => {
   //EXECUTE QUERY
   const apiFeatures = new APIFeatures(Tour.find(), req.query)
     .filter()

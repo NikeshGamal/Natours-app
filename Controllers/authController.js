@@ -1,3 +1,4 @@
+const {promisify} = require('util');
 const jwt = require('jsonwebtoken');
 const catchAsync = require('../utils/catchAsync');
 const User = require('../Models/userModel');
@@ -13,7 +14,8 @@ exports.signup = catchAsync(async (req,res)=>{
         name:req.body.name,
         email:req.body.email,
         password:req.body.password,
-        passwordConfirm:req.body.passwordConfirm
+        passwordConfirm:req.body.passwordConfirm,
+        passwordChangedAt:req.body.passwordChangedAt
     });
 
     //creating a web token 
@@ -52,4 +54,44 @@ exports.login = catchAsync(async (req,res,next)=>{
         status:"success",
         token,
     })
+});
+
+
+exports.protect  = catchAsync(async(req,res,next)=>{
+   // read the token and check if it exists
+   let token;
+   if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')){
+      token  = req.headers.authorization.split(' ')[1];
+   }
+   console.log(token);
+
+   //if token is not present then triger error
+   if(!token){
+    return next(new AppError('You are not logged In!!! Please log in again',401));
+   }
+
+   //verifying the token
+   //here the callback function is converted to the promise using the promisifying method that we have the util section as it is more easy to handle the promise rather than callback function which may lead to the callback hell condition so 
+   const decoded = await promisify(jwt.verify)(token,process.env.JWT_SECRET);
+//    console.log(decoded);
+
+   //check whether the user exists 
+   const freshUser = await User.findById(decoded.id);
+   console.log(freshUser);
+
+   if(!freshUser){
+    return next(new AppError('The user belonging to this token does no longer exists',401));
+   }
+
+   //chech if user change password after the token was issued
+   //for the password change action we create an instance method as it id more relatable to the data modelling so the instance method is define at model
+   const bool =await freshUser.changePasswordAfter(decoded.iat);
+   if(bool){
+    return next(new AppError('User recently changed password!!! Please login again',401));
+   }
+
+
+   //GRANT ACCESS  TO PROTECTED DATA
+   req.user = freshUser;
+   next();
 });

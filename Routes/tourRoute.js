@@ -1,5 +1,6 @@
 const express = require('express');
 const tourController = require('../Controllers/tourControllers');
+const authController = require('../Controllers/authController');
 //this can also be done by using destructuring the object tourControllers
 
 //Analogy can be : think as chaining method
@@ -9,7 +10,7 @@ router.route('/tour-stats').get(tourController.getTourStats);
 
 router
   .route('/')
-  .get(tourController.getALlTours)
+  .get(authController.protect,tourController.getAllTours)
   .post(tourController.createTour);
 
 router

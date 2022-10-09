@@ -6,6 +6,7 @@ const tourRoute = require('./Routes/tourRoute');
 const userRoute = require('./Routes/userRoute');
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./Controllers/errorController');
+const authController = require('./Controllers/authController');
 
 //middleware
 app.use(morgan('dev'));
@@ -34,6 +35,8 @@ app.use((req, res, next) => {
 //middleware to get the time
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
+  // console.log(req.headers);
+  // console.log(authController);
   next();
 });
 
