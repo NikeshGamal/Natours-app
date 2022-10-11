@@ -1,5 +1,6 @@
 const express = require('express');
 
+const cookieParser = require('cookie-parser');
 const app = express();
 const morgan = require('morgan');
 const tourRoute = require('./Routes/tourRoute');
@@ -9,6 +10,8 @@ const globalErrorHandler = require('./Controllers/errorController');
 const authController = require('./Controllers/authController');
 
 //middleware
+app.use(cookieParser());
+
 app.use(morgan('dev'));
 
 app.use(express.json());

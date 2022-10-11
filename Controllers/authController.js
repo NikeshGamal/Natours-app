@@ -6,15 +6,24 @@ const AppError = require('../utils/appError');
 const sendEmail = require('../utils/email');
 const crypto = require('crypto');
 
+
 const signToken = id=>{
      return jwt.sign({id},process.env.JWT_SECRET,{expiresIn:process.env.EXPIRES_IN});
 }
 
 //function to create and send token
 const createSendToken = (user,statuscode,res)=>{
+    const token = signToken(user._id);
 
-    const token = signToken(user._id)
-    res.status(statuscode).json({
+    const cookieOptions = {
+        expires:new Date(Date.now() + process.env.JWT_COOKIE_EXPIRES_IN *24 *60*60*1000),   
+        secure:true,
+        httpOnly:true
+    };
+
+    res.cookie('jwt',token,cookieOptions);
+
+   res.status(statuscode).json({
         status:"success",
         token,
         data:{
@@ -155,7 +164,7 @@ exports.forgetPassword = catchAsync(async(req,res,next)=>{
     await sendEmail({
         email:user.email,
         subject:'Your password reset token (valid for 10min)',
-        message,
+           message,
     });
 
     console.log('Status section');
