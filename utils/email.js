@@ -10,10 +10,10 @@ console.log(API_KEY);
     sendgridMail.setApiKey(API_KEY);
 
 const msg={
-        to: options.message,
+        to:'nikesh.gamal123@gmail.com',// options.message,
         from: 'crowdfundr@outlook.com', // Use the email address or domain you verified above
-        subject: options.subject,
-        message:options.message
+        subject: 'SendGrid Mail',//options.subject,
+        message:'Its fun to send mail using node js'//options.message
     };
 
     console.log(msg);

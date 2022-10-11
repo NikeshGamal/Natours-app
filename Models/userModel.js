@@ -41,7 +41,18 @@ const userSchema = new mongoose.Schema({
         type: Date,
     },
     passwordResetToken:String,
-    passwordResetExpires:Date
+    passwordResetExpires:Date,
+    active:{
+        type:Boolean,
+        default:true,
+        select:false
+    }
+});
+
+//this middeware is invoked to get all users having active not false 
+userSchema.pre(/^find/,function(next){
+    this.find({active:{$ne:false}});
+    next();
 });
 
 
@@ -72,6 +83,18 @@ userSchema.methods.changePasswordAfter = async function(JWTTimestamp){
       return JWTTimestamp < changeTimestamp;
    }
 }
+
+
+//is invoked when the password is reset and before the User gets save this middleware is called
+userSchema.pre('save',function (next){
+    if(!this.isModified('password') || this.isNew){
+        return next();
+    }
+
+    this.passwordChangedAt = Date.now() - 1000;
+    next();
+});
+
 
 userSchema.methods.createPasswordResetToken = function(){
     const resetToken = crypto.randomBytes(32).toString('hex');

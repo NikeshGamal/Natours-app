@@ -4,9 +4,23 @@ const catchAsync = require('../utils/catchAsync');
 const User = require('../Models/userModel');
 const AppError = require('../utils/appError');
 const sendEmail = require('../utils/email');
+const crypto = require('crypto');
 
 const signToken = id=>{
      return jwt.sign({id},process.env.JWT_SECRET,{expiresIn:process.env.EXPIRES_IN});
+}
+
+//function to create and send token
+const createSendToken = (user,statuscode,res)=>{
+
+    const token = signToken(user._id)
+    res.status(statuscode).json({
+        status:"success",
+        token,
+        data:{
+            user:user,
+        }
+    });
 }
 
 exports.signup = catchAsync(async (req,res)=>{
@@ -21,14 +35,17 @@ exports.signup = catchAsync(async (req,res)=>{
     });
 
     //creating a web token 
-    const token = signToken(newUser._id)
-    res.status(201).json({
-        status:"success",
-        token,
-        data:{
-            user:newUser,
-        }
-    });
+    createSendToken(newUser,201,res);
+
+
+    // const token = signToken(newUser._id)
+    // res.status(201).json({
+    //     status:"success",
+    //     token,
+    //     data:{
+    //         user:newUser,
+    //     }
+    // });
 })
 
 exports.login = catchAsync(async (req,res,next)=>{
@@ -51,11 +68,14 @@ exports.login = catchAsync(async (req,res,next)=>{
       return next(new AppError('Incorrect Email or Incorrect password',400));
     }
     //if the everthing is okay then send token to the client
-    token = signToken(user._id);
-    res.status(200).json({
-        status:"success",
-        token,
-    })
+
+    createSendToken(user,200,res);
+
+    // token = signToken(user._id);
+    // res.status(200).json({
+    //     status:"success",
+    //     token,
+    // })
 });
 
 
@@ -75,7 +95,7 @@ exports.protect  = catchAsync(async(req,res,next)=>{
    //verifying the token
    //here the callback function is converted to the promise using the promisifying method that we have the util section as it is more easy to handle the promise rather than callback function which may lead to the callback hell condition so 
    const decoded = await promisify(jwt.verify)(token,process.env.JWT_SECRET);
-//    console.log(decoded);
+   console.log(decoded);
 
    //check whether the user exists 
    const freshUser = await User.findById(decoded.id);
@@ -153,6 +173,51 @@ exports.forgetPassword = catchAsync(async(req,res,next)=>{
    }
 });
 
-exports.resetPassword = (req,res,next) =>{
+exports.resetPassword = async (req,res,next) =>{
+//get the user based on the token 
+  const hashToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
 
+  const user = await User.find({
+    passwordResetToken:hashToken,
+    passwordResetExpires: {$gt:Date.now()}
+  });
+
+  //2.if the token has not expired and there is , then set the new password
+  if(!user){
+    return next(new AppError('Token is invalid or has expired!',400));
+  }
+  user.password = req.body.password;
+  user.passwordConfirm = req.body.passwordConfirm;
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+
+   await User.save();
+   //3.update the changed password
+   //4.log the user in and send JWT
+  createSendToken(user,200,res);
+
+//    const token = signToken(user._id);
+//    res.status(200).json({
+//        status:"success",
+//        token,
+//    })
+}
+
+
+exports.updatePassword = async (req,res,next)=>{
+    //1.to get the user from the collevtion
+    const user = await User.findById(req.user.id).select('+password');
+
+    //2.posted old password is correct
+    if(!(await user.correctPassword(req.user.password,user.password))){
+        return next(new AppError('Your current password is incorrect',401));
+    }
+
+    //3.if the password is correct then update
+    user.password = req.user.password;
+    user.passwordConfirm = req.user.passwordConfirm;
+    User.save();//so validator will run as  it set to true so we need three fiels i.e.current password, new password and confirm new password
+    
+    //4.login and send the token
+    createSendToken(user,200,res);
 }
