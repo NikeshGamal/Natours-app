@@ -55,7 +55,7 @@ userSchema.pre(/^find/,function(next){
     next();
 });
 
-
+//password encyprion section using middleware
 userSchema.pre('save',async function(next){
     if(!this.isModified('password')) return next();
 

@@ -127,8 +127,8 @@ exports.protect  = catchAsync(async(req,res,next)=>{
    next();
 });
 
-//in the middleware we cant pass the argument so for the solution we create a wrapper function that returns the middleware so 
 
+//in the middleware we cant pass the argument so for the solution we create a wrapper function that returns the middleware so -----only for deleting the data-----------
 exports.restrictTo = (...roles) =>{
     return (req,res,next)=>{
         if(!roles.includes(req.user.role)){
