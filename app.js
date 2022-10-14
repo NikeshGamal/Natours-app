@@ -8,6 +8,7 @@ const userRoute = require('./Routes/userRoute');
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./Controllers/errorController');
 const authController = require('./Controllers/authController');
+const reviewRoute  = require('./Routes/reviewRoute');
 
 //middleware
 app.use(cookieParser());
@@ -67,6 +68,7 @@ app.delete('/api/v1/tours/:id', deleteTour);
 app.use('/api/v1/users', userRoute);
 //---------------ROUTES----------------
 app.use('/api/v1/tours', tourRoute);
+app.use('/api/v1/reviews', reviewRoute);
 
 //--------Handler for routes thare are not handled
 app.all('*', (req, res, next) => {

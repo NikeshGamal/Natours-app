@@ -48,6 +48,7 @@ const userSchema = new mongoose.Schema({
         select:false
     }
 });
+//Document middleware
 
 //this middeware is invoked to get all users having active not false 
 userSchema.pre(/^find/,function(next){
@@ -67,7 +68,33 @@ userSchema.pre('save',async function(next){
     next();
 });
 
+//is invoked when the password is reset and before the User gets save this middleware is called
+userSchema.pre('save',function (next){
+    if(!this.isModified('password') || this.isNew){
+        return next();
+    }
+    
+    this.passwordChangedAt = Date.now() - 1000;
+    next();
+});
 
+//query-Middleware
+
+
+
+
+//Instance methods
+
+userSchema.methods.createPasswordResetToken = function(){
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    this.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    console.log({resetToken},this.passwordResetToken);
+
+    this.passwordResetExpires = Date.now()+10*60*1000;
+    // console.log(this);
+    return resetToken;
+}
 
 userSchema.methods.correctPassword = async function(candidatePassword,userPassword){
     return await bcrypt.compare(candidatePassword,userPassword);
@@ -83,30 +110,6 @@ userSchema.methods.changePasswordAfter = async function(JWTTimestamp){
       return JWTTimestamp < changeTimestamp;
    }
 }
-
-
-//is invoked when the password is reset and before the User gets save this middleware is called
-userSchema.pre('save',function (next){
-    if(!this.isModified('password') || this.isNew){
-        return next();
-    }
-
-    this.passwordChangedAt = Date.now() - 1000;
-    next();
-});
-
-
-userSchema.methods.createPasswordResetToken = function(){
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    this.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-
-    console.log({resetToken},this.passwordResetToken);
-
-    this.passwordResetExpires = Date.now()+10*60*1000;
-    // console.log(this);
-    return resetToken;
-}
-
 
 const User = mongoose.model('User',userSchema);
 

@@ -30,7 +30,7 @@ exports.getAllTours = async (req, res, next) => {
 //************Get tour information**********
 exports.getTour = catchAsync(async (req, res, next) => {
   // console.log(tour);
-  const tour = await Tour.findById(req.params.id);
+  const tour = await Tour.findById(req.params.id).populate('reviews');
 
   if (!tour) {
     // eslint-disable-next-line no-template-curly-in-string
